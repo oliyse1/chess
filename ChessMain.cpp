@@ -1,6 +1,6 @@
-#include"ChessBoard.h"
+#include "ChessBoard.h"
 
-#include<iostream>
+#include <iostream>
 
 using std::cout;
 

@@ -243,18 +243,27 @@ bool ChessBoard::canMove(Colour colour) {
                             current_board[row][col] = nullptr;
                             bool is_in_check = isInCheck(colour);
                             //undo the move
-                             current_board[row][col] = current_board[move_row][move_col];
-                             current_board[move_row][move_col] = temp;
-                             if (is_in_check == false) {
-                                 return true;
-                             }
+                            current_board[row][col] = current_board[move_row][move_col];
+                            current_board[move_row][move_col] = temp;
+                            if (is_in_check == false) {
+                                // cout << static_cast<char>('A' + col) << static_cast<char>('1' + row) << " to " << static_cast<char>('A' + move_col) << static_cast<char>('1' + move_row) 
+                                // << " seems to be a valid move" << endl;
+
+                                // if(getChessPiece(move_row, move_col) == nullptr) {
+                                //     cout << static_cast<char>('A' + move_col) << static_cast<char>('1' + move_row) << " is nullptr" << endl;
+                                // } else {
+                                //     cout << static_cast<char>('A' + move_col) << static_cast<char>('1' + move_row) << " has type " << types[getChessPiece(move_row, move_col)->getType()] << endl;
+                                // }
+                                
+                            
+                                return true;
+                            }
                         }
                     }
                 }
             }
         }
     }
-    cout << "false in game canMove" << endl;
 
     return false;
 
@@ -387,7 +396,9 @@ Colour ChessBoard::getNextTurnColour() {
 
 bool King::isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) {
     if (chessBoard.getChessPiece(dest_row, dest_col) == nullptr || chessBoard.getChessPiece(dest_row, dest_col)->getColour() != this->getColour()) {
-        if(abs(dest_row - src_row) == 1 || abs(dest_col - src_col) == 1) {
+        if((abs(dest_row - src_row) == 1 && abs(dest_col - src_col) == 0) 
+        || (abs(dest_row - src_row) == 0 && abs(dest_col - src_col) == 1) 
+        || (abs(dest_row - src_row) == 1 && abs(dest_col - src_col) == 1)) {
             return true;
         } 
     } 
