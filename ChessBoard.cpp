@@ -47,7 +47,7 @@ ChessBoard::ChessBoard() {
 
 void ChessBoard::resetBoard() {
 
-    cout << "A new chess game is started!" << endl << endl;
+    cout << "A new chess game is started!" << endl;
 
     this_turn_colour = white;
 
