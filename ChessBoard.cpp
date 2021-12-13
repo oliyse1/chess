@@ -1,62 +1,48 @@
 #include <iostream>
-#include <vector>
 #include "ChessBoard.h"
+#include "ChessPiece.h"
+#include "King.h"
+#include "Rook.h"
+#include "Bishop.h"
+#include "Queen.h"
+#include "Knight.h"
+#include "Pawn.h"
 
+using namespace std;
 
-char const* colours[2] = {"White" , "Black"};
-char const* types[6] = {"King", "Rook", "Bishop", "Queen", "Knight", "Pawn"};
-
-
-ChessPiece::ChessPiece(Type type, Colour colour) {
-    this->type = type;
-    this->colour = colour;
-    // this->location.row = location_string[1] - '1';
-    // this->location.col = location_string[0] - 'A';
-}
-
-// ChessPiece::~ChessPiece() 
-// {
-
-// }
-
-Type ChessPiece::getType() const {
-    return type;
-}
-
-Colour ChessPiece::getColour() const {
-    return colour;
-}
-
-// bool ChessPiece::isValidDestination(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard){
-//     return true;
-// }
-
-// Location ChessPiece::getCurrentLocation() const {
-//     return location;
-// }
-
-// void ChessPiece::setCurrentLocation(char const* location_string) {
-//     this->location.row = location_string[1] - '1';
-//     this->location.col = location_string[0] - 'A';
-
-// }
-
+//constructor calls resetBoard
 ChessBoard::ChessBoard() {
     resetBoard();
+}
+
+ChessBoard::~ChessBoard() {
+    //delete all existing pieces on the board and set all squares to nullptr
+    for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+            if(current_board[row][col] != nullptr) {
+                delete current_board[row][col];
+                current_board[row][col] = nullptr;
+            }  
+        }
+    }
 }
 
 void ChessBoard::resetBoard() {
 
     cout << "A new chess game is started!" << endl;
 
+    is_game_over = false;
+    
+    //white always goes first
     this_turn_colour = white;
 
     //delete all existing pieces on the board and set all squares to nullptr
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
-           
-            current_board[row][col] = nullptr;
-            
+            if(current_board[row][col] != nullptr) {
+                delete current_board[row][col];
+                current_board[row][col] = nullptr;
+            }  
         }
     }
 
@@ -89,23 +75,17 @@ void ChessBoard::resetBoard() {
   
 }
 
-// ChessPiece ChessBoard::getCurrentBoard() const {
-//     return current_board;
-// }
-
-ChessPiece* ChessBoard::getChessPiece(int row, int col) {
-    // if(current_board[row][col] != nullptr) {
-        return current_board[row][col];
-    // }
-    // else {
-    //     cerr << "no chesspiece in this location " << row << "," << col << endl;
-    //     throw(1);
-    // }
-    
+ChessPiece* ChessBoard::getChessPiece(int row, int col) const {
+    return current_board[row][col];
 }
 
-void ChessBoard::setChessPiece(ChessPiece* chessPiece, int row, int col){
-    current_board[row][col] = chessPiece;
+Colour ChessBoard::getNextTurnColour() const {
+    if (this_turn_colour == white) {
+        return black;
+    }
+    else {
+        return white;
+    }
 }
 
 void ChessBoard::alternateTurns() {
@@ -117,94 +97,11 @@ void ChessBoard::alternateTurns() {
     }
 }
 
-void ChessBoard::submitMove(char const* source_square, char const* destination_square) {
-    int src_row = source_square[1] - '1';
-    int src_col = source_square[0] - 'A';
-    int dest_row = destination_square[1] - '1';
-    int dest_col = destination_square[0] - 'A';
-
-    if (src_row < 0 || src_row > 7 || src_col < 0 || src_col > 7 || dest_row < 0 || dest_row > 7 || dest_col < 0 || dest_col > 7 || (src_row == dest_row && src_col == dest_col)) {
-        cout << colours[getChessPiece(src_row, src_col)->getColour()] << "'s " << types[getChessPiece(src_row, src_col)->getType()] 
-        << " cannot move to " << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row) << "!" << endl;
-        return;
-    }
-
-
-    if (getChessPiece(src_row, src_col) == nullptr) {
-        cout << "There is no piece at position " << static_cast<char>('A' + src_col) << static_cast<char>('1' + src_row) << "!" << endl;
-        return;
-    }
-
-    if (getChessPiece(src_row, src_col)->getColour() != this_turn_colour) {
-        cout << "It is not " << colours[getChessPiece(src_row, src_col)->getColour()] << "'s turn to move!" << endl;
-        return;
-    
-    }
-
-    if (getChessPiece(src_row, src_col)->isLegalMove(src_row, src_col, dest_row, dest_col, *this) == false) {
-        cout << colours[getChessPiece(src_row, src_col)->getColour()] << "'s " << types[getChessPiece(src_row, src_col)->getType()] 
-        << " cannot move to " << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row) << "!" << endl;
-        return;
-    }
-
-    else { //make the move
-
-        ChessPiece* temp = nullptr;
-        temp = current_board[dest_row][dest_col];
-        current_board[dest_row][dest_col] = current_board[src_row][src_col];
-        current_board[src_row][src_col] = nullptr;
-
-        //check if current player is in check, if so undo the move
-        if (isInCheck(this_turn_colour)) {
-            //undo the move
-            current_board[src_row][src_col] = current_board[dest_row][dest_col];
-            current_board[dest_row][dest_col] = temp;
-
-            cout << colours[getChessPiece(src_row, src_col)->getColour()] << "'s " << types[getChessPiece(src_row, src_col)->getType()] 
-            << " cannot move to " << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row) << "!" << endl;
-            return;
-        }
-        else {
-
-            if (temp == nullptr) {
-                cout << colours[getChessPiece(dest_row, dest_col)->getColour()] << "'s " << types[getChessPiece(dest_row, dest_col)->getType()] 
-                << " moves from " << static_cast<char>('A' + src_col) << static_cast<char>('1' + src_row) << " to " << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row) << endl;
-            } 
-            else {
-                cout << colours[getChessPiece(dest_row, dest_col)->getColour()] << "'s " << types[getChessPiece(dest_row, dest_col)->getType()] 
-                << " moves from " << static_cast<char>('A' + src_col) << static_cast<char>('1' + src_row) << " to " << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row)
-                << " taking " << colours[temp->getColour()] << "'s " << types[temp->getType()] << endl; 
-            }
-
-            delete temp;
-            temp = nullptr;
-
-            if (isGameOver(getNextTurnColour()) == false) {
-                if (isInCheck(getNextTurnColour())) {
-                    cout << colours[getNextTurnColour()] << " is in check" << endl;
-                }
-            }
-
-            alternateTurns();
-        }
-
-        if (getChessPiece(dest_row, dest_col)->getType() == pawn) {
-            Pawn* pawn = (Pawn*)getChessPiece(dest_row, dest_col);
-            if(pawn->isFirstMove() == true) {
-                pawn->finishedFirstMove();
-            }
-        }
-    } 
-
-   
-    
-}
-
 void ChessBoard::getKingPosition(Colour colour, int& king_row, int& king_col) {
     for (king_row = 0; king_row < 8; king_row++) {
         for (king_col = 0; king_col < 8; king_col++) {
-            if(getChessPiece(king_row, king_col) != nullptr) {
-                if(getChessPiece(king_row, king_col)->getType() == king && getChessPiece(king_row, king_col)->getColour() == colour) {
+            if(current_board[king_row][king_col] != nullptr) {
+                if(current_board[king_row][king_col]->getType() == king && current_board[king_row][king_col]->getColour() == colour) {
                     return;
                 }
             }
@@ -217,11 +114,11 @@ bool ChessBoard::isInCheck(Colour colour) {
     int king_row, king_col;
     getKingPosition(colour, king_row, king_col);
 
+    //check if it is a valid move for any piece on the board to have the King of the specified colour as their destination
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
-            if(getChessPiece(row, col) != nullptr) {
-                if(getChessPiece(row, col)->isLegalMove(row, col, king_row, king_col, *this)) {
-                    
+            if(current_board[row][col] != nullptr) {
+                if(current_board[row][col]->isLegalMove(row, col, king_row, king_col, *this)) {
                     return true;
                 }
             }
@@ -234,28 +131,57 @@ bool ChessBoard::isInCheck(Colour colour) {
 bool ChessBoard::canMove(Colour colour) {
     for (int row = 0 ; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
-            if (getChessPiece(row, col) != nullptr && getChessPiece(row, col)->getColour() == colour) {
+            //check for any piece on the board which is the specified colour
+            if (current_board[row][col] != nullptr && current_board[row][col]->getColour() == colour) {
+                //for all destinations on the board
                 for (int move_row = 0 ; move_row < 8; move_row++) {
                     for (int move_col = 0; move_col < 8; move_col++) {
-                        if (getChessPiece(row, col)->isLegalMove(row, col, move_row, move_col, *this)) {
+                        //check for castling
+                        int is_castling_valid = false;
+                        if (current_board[row][col]->getType() == king && abs(move_col - col) ==  2) {
+                            is_castling_valid = isCastlingValid(row, col, move_row, move_col);
+                        }
+                        
+                        //check if it is a valid move for the chess piece
+                        if (current_board[row][col]->isLegalMove(row, col, move_row, move_col, *this) || is_castling_valid == true) {
+                            //make the move
                             ChessPiece* temp = current_board[move_row][move_col];
                             current_board[move_row][move_col] = current_board[row][col];
                             current_board[row][col] = nullptr;
+
+                            //move the rook as well if it is a castling move
+                            if (is_castling_valid == true) {
+                                if (move_col > col) {
+                                    current_board[row][col + 1] = current_board[row][col + 3];
+                                    current_board[row][col + 3] = nullptr;
+                                }
+                                else if (move_col < col) {
+                                    current_board[row][col - 1] = current_board[row][col - 4];
+                                    current_board[row][col - 4] = nullptr;
+                                }
+                            }
+
+                            //check if player of the specified colour is in check after making the move
                             bool is_in_check = isInCheck(colour);
+
                             //undo the move
                             current_board[row][col] = current_board[move_row][move_col];
                             current_board[move_row][move_col] = temp;
-                            if (is_in_check == false) {
-                                // cout << static_cast<char>('A' + col) << static_cast<char>('1' + row) << " to " << static_cast<char>('A' + move_col) << static_cast<char>('1' + move_row) 
-                                // << " seems to be a valid move" << endl;
 
-                                // if(getChessPiece(move_row, move_col) == nullptr) {
-                                //     cout << static_cast<char>('A' + move_col) << static_cast<char>('1' + move_row) << " is nullptr" << endl;
-                                // } else {
-                                //     cout << static_cast<char>('A' + move_col) << static_cast<char>('1' + move_row) << " has type " << types[getChessPiece(move_row, move_col)->getType()] << endl;
-                                // }
-                                
-                            
+                            //undo rook move as well if it is a castling move 
+                            if (is_castling_valid == true) {
+                                if (move_col > col) {
+                                    current_board[row][col + 3] = current_board[row][col + 1];
+                                    current_board[row][col + 1] = nullptr;
+                                }
+                                else if (move_col < col) {
+                                    current_board[row][col - 4] = current_board[row][col - 1];
+                                    current_board[row][col - 1] = nullptr;
+                                }
+                            }
+
+                            //if was not in check, it is a legal move, so return true
+                            if (is_in_check == false) {
                                 return true;
                             }
                         }
@@ -266,408 +192,225 @@ bool ChessBoard::canMove(Colour colour) {
     }
 
     return false;
-
 }
 
 bool ChessBoard::isGameOver(Colour colour) {
+    //if player of specified colour cannot make any moves
     if(!canMove(colour)) {
+        //if player of specified colour is in check then that player is in checkmate
         if (isInCheck(colour)) {
             cout << colours[colour] << " is in checkmate" << endl;
         } 
+        //if player of specified colour is not in check then a staltemate has occured
         else {
             cout << "Stalemate!" << endl;
         }
-
         return true;
     } 
-
+    //if player of specified colour is able to move
     return false;
 }
 
-// Status ChessBoard::isLegalMove(int src_row, int src_col, int dest_row, int dest_col) {
+void ChessBoard::submitMove(char const* source_square, char const* destination_square) {
+    //cannot make a move when game is over
+    if (is_game_over) {
+        cout << "Game is over, please start a new game with resetBoard()." << endl;
+        return;
+    }
+    //temporary variable
+    int length_of_source_square = 0;
+    int length_of_destination_square = 0;
 
-//     //if the destination is valid
-//     if (getChessPiece(src_row, src_col)->isValidDestination(src_row, src_col, dest_row, dest_col, *this) == true) {
+    //check if length of source_square input is fine
+    while (source_square[length_of_source_square] != '\0') {
+        length_of_source_square++;
+    }
 
+    //check if length of destination_square input is fine
+    while (destination_square[length_of_destination_square] != '\0') {
+        length_of_destination_square++;
+    }
+
+    //print message if length of inputs are not fine
+    if (length_of_source_square != 2 || length_of_destination_square != 2) {
+        cout << "Invalid input in submitMove(\"" << source_square << "\", \"" << destination_square<< "\"). " 
+        << "Arguments source_square and destination_square should be in the format of \"A4\", ranging from \"A1\" to \"H8\"."<< endl;
+        return;
+    }
+
+    int src_row = source_square[1] - '1';
+    int src_col = source_square[0] - 'A';
+    int dest_row = destination_square[1] - '1';
+    int dest_col = destination_square[0] - 'A';
+
+    //ehck that the rows and columns can only range from 0 to 7
+    if (src_row < 0 || src_row > 7 || src_col < 0 || src_col > 7 || dest_row < 0 || dest_row > 7 || dest_col < 0 || dest_col > 7) {
+        cout << "Invalid input in submitMove(\"" << source_square << "\", \"" << destination_square<< "\"). " 
+        << "Arguments source_square and destination_square should be in the format of \"A4\", ranging from \"A1\" to \"H8\"."<< endl;
+        return;
+    }
+
+    //check if there is currently a chess piece in source_square
+    if (current_board[src_row][src_col] == nullptr) {
+        cout << "There is no piece at position " << static_cast<char>('A' + src_col) << static_cast<char>('1' + src_row) << "!" << endl;
+        return;
+    }
+
+    //check if the piece at source_square is the colour of this turn's player
+    if (current_board[src_row][src_col]->getColour() != this_turn_colour) {
+        cout << "It is not " << colours[current_board[src_row][src_col]->getColour()] << "'s turn to move!" << endl;
+        return;
+    }
+
+     //check if  destination_square is the same as source_square
+    if (src_row == dest_row && src_col == dest_col) {
+        cout << colours[current_board[src_row][src_col]->getColour()] << "'s " << types[current_board[src_row][src_col]->getType()] 
+        << " is already currently at " << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row) << "!" << endl;
+        return;
+    }
+
+    //check for castling
+    int is_castling_valid = false;
+    if (current_board[src_row][src_col]->getType() == king && abs(dest_col - src_col) ==  2) {
+       is_castling_valid = isCastlingValid(src_row, src_col, dest_row, dest_col);
+       if (is_castling_valid == false) {
+            cout << colours[current_board[src_row][src_col]->getColour()] << "'s " << types[current_board[src_row][src_col]->getType()] 
+            << " cannot move to " << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row) << "!" << endl;
+            return;
+       }
+    }
+       
+    //check if the move submitted is a valid move for the chess piece
+    else if (current_board[src_row][src_col]->isLegalMove(src_row, src_col, dest_row, dest_col, *this) == false) {
+        cout << colours[current_board[src_row][src_col]->getColour()] << "'s " << types[current_board[src_row][src_col]->getType()] 
+        << " cannot move to " << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row) << "!" << endl;
+        return;
+    }
+    
+    //it is a valid move so make the move
+    ChessPiece* temp = nullptr;
+    temp = current_board[dest_row][dest_col];
+    current_board[dest_row][dest_col] = current_board[src_row][src_col];
+    current_board[src_row][src_col] = nullptr;
+
+    //move the rook as well if it is a castling move
+    if (is_castling_valid == true) {
+        if (dest_col > src_col) {
+            current_board[src_row][src_col + 1] = current_board[src_row][src_col + 3];
+            current_board[src_row][src_col + 3] = nullptr;
+        }
+        else if (dest_col < src_col) {
+            current_board[src_row][src_col - 1] = current_board[src_row][src_col - 4];
+            current_board[src_row][src_col - 4] = nullptr;
+        }
+    }
+
+    //check if current player is in check, if so undo the move
+    if (isInCheck(this_turn_colour)) {
+        //undo the move
+        current_board[src_row][src_col] = current_board[dest_row][dest_col];
+        current_board[dest_row][dest_col] = temp;
+
+        //undo rook move as well if it is a castling move 
+        if (is_castling_valid == true) {
+            if (dest_col > src_col) {
+                current_board[src_row][src_col + 3] = current_board[src_row][src_col + 1];
+                current_board[src_row][src_col + 1] = nullptr;
+            }
+            else if (dest_col < src_col) {
+                current_board[src_row][src_col - 4] = current_board[src_row][src_col - 1];
+                current_board[src_row][src_col - 1] = nullptr;
+            }
+        }
         
-//         if (current_board[dest_row][dest_col] == nullptr) {
-
-//             //make the move
-//             current_board[dest_row][dest_col] = current_board[src_row][src_col];
-//             current_board[src_row][src_col] = nullptr;
-
-//             //check if in check
-//             if (isInCheck(getNextTurnColour())) {
-
-//                 int king_row, king_col;
-//                 for (king_row = 0; king_row < 8; king_row++) {
-//                     for (king_col = 0; king_col < 8; king_col++) {
-//                         if(getChessPiece(king_row, king_col)->getType() == king && getChessPiece(king_row, king_col)->getColour() == getNextTurnColour()) {
-//                             break;
-//                         }
-//                     }
-//                 }
-                
-//                 //check if is chackmate
-//                 for (int row = 0; row < 8; row++) {
-//                     for (int col = 0; col < 8; col++) {
-//                         if(isLegalMove(king))
-//                     }
-//                 }
-
-
-
-//                 return check;
-//             }
-
-//             if(isInCheck(this_turn_colour)) {
-
-//                 if()
-
-
-
-//                 //undo move
-//                 current_board[src_row][src_col] = current_board[dest_row][dest_col];
-//                 current_board[dest_row][dest_col] = nullptr;
-//                 return false;
-//             }
-//             else {
-//                 //undo move
-//                 current_board[src_row][src_col] = current_board[dest_row][dest_col];
-//                 current_board[dest_row][dest_col] = nullptr;
-//                 return true;
-//             }
-//         } 
-//         else {
-
-//             ChessPiece* temp =  current_board[dest_row][dest_col];
-//             current_board[dest_row][dest_col] = current_board[src_row][src_col];
-//             current_board[src_row][src_col] = nullptr; 
-        
-//             if(isInCheck(this_turn_colour)) {
-//                 //undo move
-//                 current_board[src_row][src_col] = current_board[dest_row][dest_col];
-//                 current_board[dest_row][dest_col] = temp;
-//                 temp = nullptr;
-//                 return false;
-//             }
-//             else {
-//                 //undo move
-//                 current_board[src_row][src_col] = current_board[dest_row][dest_col];
-//                 current_board[dest_row][dest_col] = temp;
-//                 temp = nullptr;
-//                 return true;
-//             }
-//         }
-//     }
-//     else {
-//         return no;
-//     }
-// }
-
-Colour ChessBoard::getNextTurnColour() {
-    if (this_turn_colour == white) {
-        return black;
+        cout << colours[current_board[src_row][src_col]->getColour()] << "'s " << types[current_board[src_row][src_col]->getType()] 
+        << " cannot move to " << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row) << " as this leaves their King in check." << endl;
+        return;
     }
     else {
-        return white;
-    }
-}
 
-// bool Pawn::isValidDestination(Location& source, Location& destination, ChessPiece current_board[8][8]) {
-//     if (current_board[destination.row][destination.col] == 0) {
-        
-//         if (this->getColour() == white) {
-//             if ((destination.row - source.row) == 1 && destination.col == source.col) {
-//             return true;
-//             }
-//             else {
-//                 return false;
-
-//         }
-        
-//     }
-
-
-
-//     }
-   
-// }
-
-bool King::isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) {
-    if (chessBoard.getChessPiece(dest_row, dest_col) == nullptr || chessBoard.getChessPiece(dest_row, dest_col)->getColour() != this->getColour()) {
-        if((abs(dest_row - src_row) == 1 && abs(dest_col - src_col) == 0) 
-        || (abs(dest_row - src_row) == 0 && abs(dest_col - src_col) == 1) 
-        || (abs(dest_row - src_row) == 1 && abs(dest_col - src_col) == 1)) {
-            return true;
+        if (temp == nullptr) {
+            cout << colours[current_board[dest_row][dest_col]->getColour()] << "'s " << types[current_board[dest_row][dest_col]->getType()] 
+            << " moves from " << static_cast<char>('A' + src_col) << static_cast<char>('1' + src_row) << " to " 
+            << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row) << endl;
         } 
-    } 
-    return false;
-}
-
-bool Rook::isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) {
-    if (chessBoard.getChessPiece(dest_row, dest_col) == nullptr || chessBoard.getChessPiece(dest_row, dest_col)->getColour() != this->getColour()) {
-        
-        //if same row
-        if (src_row == dest_row) {
-            if (src_col < dest_col) {
-                for (int col = src_col + 1; col < dest_col; col++) {
-                    if (chessBoard.getChessPiece(src_row, col) != nullptr) {
-                        return false;
-                    }
-                }
-
-                return true;
-
-            } else if (src_col > dest_col) {
-                for (int col = dest_col + 1; col < src_col; col++) {
-                    if (chessBoard.getChessPiece(src_row, col) != nullptr) {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
+        else {
+            cout << colours[current_board[dest_row][dest_col]->getColour()] << "'s " << types[current_board[dest_row][dest_col]->getType()] 
+            << " moves from " << static_cast<char>('A' + src_col) << static_cast<char>('1' + src_row) << " to " 
+            << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row)
+            << " taking " << colours[temp->getColour()] << "'s " << types[temp->getType()] << endl; 
         }
 
-        //if same col
-        if (src_col == dest_col) {
-            if (src_row < dest_row) {
-                for (int row = src_row + 1; row < dest_row; row++) {
-                    if (chessBoard.getChessPiece(row, src_col) != nullptr) {
-                        return false;
-                    }
-                }
+        //delete the taken piece
+        delete temp;
+        temp = nullptr;
 
-                return true;
-
-            } else if (src_row > dest_row) {
-                for (int row = dest_row + 1; row < src_row; row++) {
-                    if (chessBoard.getChessPiece(row, src_col) != nullptr) {
-                        return false;
-                    }
-                }
-
-                return true;
+        //if it is a castling move
+        if (is_castling_valid) {
+            if (dest_col > src_col) {
+                cout << colours[current_board[src_row][src_col + 1]->getColour()] << "'s " << types[current_board[src_row][src_col + 1]->getType()] 
+                << " moves from " << static_cast<char>('A' + src_col + 3) << static_cast<char>('1' + src_row) << " to " 
+                << static_cast<char>('A' + src_col + 1) << static_cast<char>('1' + src_row) << " (castling implemented)" << endl;
             }
-        }
+            else if (dest_col < src_col) {
+                cout << colours[current_board[src_row][src_col - 1]->getColour()] << "'s " << types[current_board[src_row][src_col - 1]->getType()] 
+                << " moves from " << static_cast<char>('A' + src_col - 4) << static_cast<char>('1' + src_row) << " to " 
+                << static_cast<char>('A' + src_col - 1) << static_cast<char>('1' + src_row) << " (castling implemented)" << endl;
+            }
+        } 
 
+    
+        //check if it game over for the opponent after the current player makes his/her move
+        if (isGameOver(getNextTurnColour()) == false) {
+            //if not game over for opponent, check if opponent is in check
+            if (isInCheck(getNextTurnColour())) {
+                cout << colours[getNextTurnColour()] << " is in check" << endl;
+            }
+        } 
+        else {
+            is_game_over = true;
+        }
+        //switch player turns
+        alternateTurns();
+    }
+
+    //if the piece which moved made its first move, record it
+    if(current_board[dest_row][dest_col]->isFirstMove() == true) {
+        current_board[dest_row][dest_col]->finishedFirstMove();
     }
     
-
-    return false;
-
-
 }
 
-
-bool Bishop::isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) {
-    if (chessBoard.getChessPiece(dest_row, dest_col) == nullptr || chessBoard.getChessPiece(dest_row, dest_col)->getColour() != this->getColour()) {
-     
-        if (abs(dest_row - src_row) == abs(dest_col - src_col) && (dest_row - src_row) != 0) {
-            if (dest_row > src_row) {
-                if(dest_col > src_col) {
-                    for (int i = 1; i < (dest_col - src_col); i++) {
-                        if (chessBoard.getChessPiece(src_row + i, src_col + i) != nullptr) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                }
-                else if (dest_col < src_col) {
-                    for (int i = 1; i < (src_col - dest_col); i++) {
-                        if (chessBoard.getChessPiece(src_row + i, src_col - i) != nullptr) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                }
+bool ChessBoard::isCastlingValid(int src_row, int src_col, int dest_row, int dest_col) {
+    if (!isInCheck(current_board[src_row][src_col]->getColour())) {
+        if (current_board[src_row][src_col]->isFirstMove()) { 
+            if (dest_col - src_col > 0) {
+                if (current_board[src_row][src_col + 3] != nullptr) {
+                    if (current_board[src_row][src_col + 3]->getType() == rook
+                        && current_board[src_row][src_col + 3]->isFirstMove() == true
+                        && current_board[src_row][src_col + 1] == nullptr
+                        && current_board[src_row][src_col + 2] == nullptr) {
+                        
+                        return true;
+                    } 
+                }      
             }
-            else if (src_row > dest_row) {
-                if(dest_col > src_col) {
-                    for (int i = 1; i < (dest_col - src_col); i++) {
-                        if (chessBoard.getChessPiece(src_row - i, src_col + i) != nullptr) {
-                            return false;
-                        }
-                    }
 
-                    return true;
+            else if (dest_col - src_col < 0) {
+                if (current_board[src_row][src_col - 4] != nullptr) {
+                    if (current_board[src_row][src_col - 4]->getType() == rook 
+                        && current_board[src_row][src_col - 4]->isFirstMove() == true
+                        && current_board[src_row][src_col - 1] == nullptr
+                        && current_board[src_row][src_col - 2] == nullptr
+                        && current_board[src_row][src_col - 3] == nullptr) {
+                        
+                        return true;
+                    } 
                 }
-                else if (dest_col < src_col) {
-                    for (int i = 1; i < (src_col - dest_col); i++) {
-                        if (chessBoard.getChessPiece(src_row - i, src_col - i) != nullptr) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                }
-            }
-        }       
-    }
-
-    return false;
-
-}
-
-bool Queen::isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) {
-     if (chessBoard.getChessPiece(dest_row, dest_col) == nullptr || chessBoard.getChessPiece(dest_row, dest_col)->getColour() != this->getColour()) {
-        
-        //if same row
-        if (src_row == dest_row) {
-            if (src_col < dest_col) {
-                for (int col = src_col + 1; col < dest_col; col++) {
-                    if (chessBoard.getChessPiece(src_row, col) != nullptr) {
-                        return false;
-                    }
-                }
-
-                return true;
-
-            } else if (src_col > dest_col) {
-                for (int col = dest_col + 1; col < src_col; col++) {
-                    if (chessBoard.getChessPiece(src_row, col) != nullptr) {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-        }
-
-        //if same col
-        if (src_col == dest_col) {
-            if (src_row < dest_row) {
-                for (int row = src_row + 1; row < dest_row; row++) {
-                    if (chessBoard.getChessPiece(row, src_col) != nullptr) {
-                        return false;
-                    }
-                }
-
-                return true;
-
-            } else if (src_row > dest_row) {
-                for (int row = dest_row + 1; row < src_row; row++) {
-                    if (chessBoard.getChessPiece(row, src_col) != nullptr) {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-        }
-
-        if (abs(dest_row - src_row) == abs(dest_col - src_col) && (dest_row - src_row) != 0) {
-            if (dest_row > src_row) {
-                if(dest_col > src_col) {
-                    for (int i = 1; i < (dest_col - src_col); i++) {
-                        if (chessBoard.getChessPiece(src_row + i, src_col + i) != nullptr) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                }
-                else if (dest_col < src_col) {
-                    for (int i = 1; i < (src_col - dest_col); i++) {
-                        if (chessBoard.getChessPiece(src_row + i, src_col - i) != nullptr) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                }
-            }
-            else if (src_row > dest_row) {
-                if(dest_col > src_col) {
-                    for (int i = 1; i < (dest_col - src_col); i++) {
-                        if (chessBoard.getChessPiece(src_row - i, src_col + i) != nullptr) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                }
-                else if (dest_col < src_col) {
-                    for (int i = 1; i < (src_col - dest_col); i++) {
-                        if (chessBoard.getChessPiece(src_row - i, src_col - i) != nullptr) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                }
-            }
-        }       
-
-    }
-    
-
-    return false;
-
-}
-
-bool Knight::isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) {
-    if (chessBoard.getChessPiece(dest_row, dest_col) == nullptr || chessBoard.getChessPiece(dest_row, dest_col)->getColour() != this->getColour()) {
-        if (abs(dest_row - src_row) == 2 && abs(dest_col - src_col) == 1) {
-           return true;
-        }
-        else if (abs(dest_row - src_row) == 1 && abs(dest_col - src_col) == 2) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool Pawn::isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) {
-    if (chessBoard.getChessPiece(dest_row, dest_col) == nullptr) {
-        if (this->getColour() == white) {
-            if (dest_col == src_col && (dest_row - src_row) == 1) {
-                return true;
-            } 
-            else if (dest_col == src_col && (dest_row - src_row) == 2 && isFirstMove() == true) {
-                if (chessBoard.getChessPiece(src_row + 1, src_col) != nullptr) {
-                    return false;
-                }
-                return true;
-            }
-        }
-        else {
-            if (dest_col == src_col && (dest_row - src_row) == -1) {
-                return true;
-            } 
-            else if (dest_col == src_col && (dest_row - src_row) == -2 && isFirstMove() == true) {
-                if (chessBoard.getChessPiece(src_row - 1, src_col) != nullptr) {
-                    return false;
-                }
-                return true;
-            }
-        }
-
-    } 
-    else if (chessBoard.getChessPiece(dest_row, dest_col)->getColour() != this->getColour()) {
-        if (this->getColour() == white) {
-            if ((dest_row - src_row) == 1 && abs(dest_col - src_col) == 1) {
-                return true;
-            }
-        }
-        else {
-            if ((dest_row - src_row) == -1 && abs(dest_col - src_col) == 1) {
-                return true;
             }
         }
     }
 
     return false;
-}
-
-bool Pawn::isFirstMove() {
-    return is_first_move;
-}
-
-void Pawn::finishedFirstMove() {
-    is_first_move = false;
 }
 

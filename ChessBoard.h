@@ -2,121 +2,47 @@
 #define CHESSBOARD_H
 
 #include <iostream>
-#include <vector>
-
-
+#include "ChessPiece.h"
 using namespace std;
 
-enum Colour {white = 0, black};
-extern char const* colours[2];
-enum Type {king = 0, rook, bishop, queen, knight, pawn};
-extern char const* types[6];
-
-
-class ChessBoard;
-
-class ChessPiece {
-
-protected:
-    Type type;
-    Colour colour;
-    // Location location;
-
-
-public:
-
-    ChessPiece(Type type, Colour colour);
-    //need virtual destructor, if not deleting a pointer to a base class might cause undefined behaviour
-    virtual ~ChessPiece(){}
-    Type getType() const;
-    Colour getColour() const;
-    // Location getCurrentLocation() const;
-    // void setCurrentLocation(char const* location_string);
-    virtual bool isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) = 0;
-};
-
+//the ChessBoard class is where the user interacts with the chess pieces of a chess board.
 class ChessBoard {
 
 private:
+    //colour of the current player
     Colour this_turn_colour = white;
-    ChessPiece* current_board[8][8];
-    bool in_check = false;
+    //a chess board which contains pointers to all chess pieces on a board
+    ChessPiece* current_board[8][8] = {nullptr};
+    //variable to hold the state of game
+    bool is_game_over = false;
    
-
 public:
+    //no inputs needed for contructor, calls resetBoard()
     ChessBoard();
+    //destructor deletes remaining pieces on the board
+    ~ChessBoard();
+    //this function resets the chess board for a new game
     void resetBoard();
-    ChessPiece* getChessPiece(int row, int col);
-    void setChessPiece(ChessPiece* chessPiece, int row, int col);
-    void submitMove(char const* source_square, char const* destination_square);
-    bool isOccupied(int row, int col);
-    void reset();
+    //this function returns the pointer to a chess piece on the chess board
+    ChessPiece* getChessPiece(int row, int col) const;
+    //this function returns the colour of the player who is not currently playing (not currently his/her turn)
+    Colour getNextTurnColour() const;
+    //this function alternates player turn
     void alternateTurns();
-    bool isInCheck(Colour colour);
-    Colour getNextTurnColour();
-    bool canMove(Colour colour);
-    bool isGameOver(Colour colour);
+    //this function takes in references to a row and col variable and sets it to the position of the King on the chess board, of a specified player colour
     void getKingPosition(Colour colour, int& row, int& col);
+    //this function checks if the player of a specified colour is in check
+    bool isInCheck(Colour colour);
+    //this function checks if a player of a specified colour has any valid moves across the whole chess board
+    bool canMove(Colour colour);
+    //this function checks if it a player of a specified colour is in checkmate or if the game is in stalemate
+    bool isGameOver(Colour colour);
+    //this function allows the player to interact with the check pieces on the chess board. source_sqaure and destination_square need to be in the format/range of "A1" to "H8"
+    void submitMove(char const* source_square, char const* destination_square);
+    //this function checks if a castling move is valid
+    bool isCastlingValid(int src_row, int src_col, int dest_row, int dest_col);
     
-
 };
-
-
-
-class King : public ChessPiece {
-
-public:
-    King(Type type, Colour colour):ChessPiece(type, colour){}
-    ~King(){}
-    bool isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) override;
-
-};
-
-class Rook : public ChessPiece {
-
-public:
-    Rook(Type type, Colour colour):ChessPiece(type, colour){}
-    ~Rook(){}
-    bool isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) override;
-};
-
-class Bishop : public ChessPiece {
-
-public:
-    Bishop(Type type, Colour colour):ChessPiece(type, colour){}
-    ~Bishop(){}
-    bool isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) override;
-};
-
-class Queen : public ChessPiece {
-
-public:
-    Queen(Type type, Colour colour):ChessPiece(type, colour){}
-    ~Queen(){}
-    bool isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) override;
-};
-
-class Knight : public ChessPiece {
-
-public:
-    Knight(Type type, Colour colour):ChessPiece(type, colour){}
-    ~Knight(){}
-    bool isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) override;
-};
-
-class Pawn : public ChessPiece {
-    //need to be set to false after first move
-    bool is_first_move = true;
-
-public:
-    Pawn(Type type, Colour colour):ChessPiece(type, colour){}
-    ~Pawn(){}
-    bool isLegalMove(int src_row, int src_col, int dest_row, int dest_col, ChessBoard& chessBoard) override;
-    bool isFirstMove();
-    void finishedFirstMove();
-
-};
-
 
 
 #endif
