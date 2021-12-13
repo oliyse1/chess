@@ -136,30 +136,13 @@ bool ChessBoard::canMove(Colour colour) {
                 //for all destinations on the board
                 for (int move_row = 0 ; move_row < 8; move_row++) {
                     for (int move_col = 0; move_col < 8; move_col++) {
-                        //check for castling
-                        int is_castling_valid = false;
-                        if (current_board[row][col]->getType() == king && abs(move_col - col) ==  2) {
-                            is_castling_valid = isCastlingValid(row, col, move_row, move_col);
-                        }
                         
-                        //check if it is a valid move for the chess piece
-                        if (current_board[row][col]->isLegalMove(row, col, move_row, move_col, *this) || is_castling_valid == true) {
+                        //check if it is a valid move for the chess piece, no need to check for castling as castling will never be to only move a player can make 
+                        if (current_board[row][col]->isLegalMove(row, col, move_row, move_col, *this)) {
                             //make the move
                             ChessPiece* temp = current_board[move_row][move_col];
                             current_board[move_row][move_col] = current_board[row][col];
                             current_board[row][col] = nullptr;
-
-                            //move the rook as well if it is a castling move
-                            if (is_castling_valid == true) {
-                                if (move_col > col) {
-                                    current_board[row][col + 1] = current_board[row][col + 3];
-                                    current_board[row][col + 3] = nullptr;
-                                }
-                                else if (move_col < col) {
-                                    current_board[row][col - 1] = current_board[row][col - 4];
-                                    current_board[row][col - 4] = nullptr;
-                                }
-                            }
 
                             //check if player of the specified colour is in check after making the move
                             bool is_in_check = isInCheck(colour);
@@ -167,18 +150,6 @@ bool ChessBoard::canMove(Colour colour) {
                             //undo the move
                             current_board[row][col] = current_board[move_row][move_col];
                             current_board[move_row][move_col] = temp;
-
-                            //undo rook move as well if it is a castling move 
-                            if (is_castling_valid == true) {
-                                if (move_col > col) {
-                                    current_board[row][col + 3] = current_board[row][col + 1];
-                                    current_board[row][col + 1] = nullptr;
-                                }
-                                else if (move_col < col) {
-                                    current_board[row][col - 4] = current_board[row][col - 1];
-                                    current_board[row][col - 1] = nullptr;
-                                }
-                            }
 
                             //if was not in check, it is a legal move, so return true
                             if (is_in_check == false) {
@@ -286,8 +257,38 @@ void ChessBoard::submitMove(char const* source_square, char const* destination_s
         << " cannot move to " << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row) << "!" << endl;
         return;
     }
+
+    //if it is a castling move, check if the king passes through a square under attack
+    if (is_castling_valid == true) {
+        //king moves one square in direction of destination
+        if (dest_col > src_col) {
+            current_board[src_row][src_col + 1] = current_board[src_row][src_col];
+            current_board[src_row][src_col] = nullptr;
+        }
+        else if (dest_col < src_col) {
+            current_board[src_row][src_col - 1] = current_board[src_row][src_col];
+            current_board[src_row][src_col] = nullptr;
+        }
+
+        bool king_passes_through_check = isInCheck(this_turn_colour);
+        //undo the move
+        if (dest_col > src_col) {
+            current_board[src_row][src_col] = current_board[src_row][src_col + 1];
+            current_board[src_row][src_col + 1] = nullptr;
+        }
+        else if (dest_col < src_col) {
+            current_board[src_row][src_col] = current_board[src_row][src_col - 1];
+            current_board[src_row][src_col - 1] = nullptr;
+        }
+
+        if (king_passes_through_check == true) {
+            cout << colours[current_board[src_row][src_col]->getColour()] << "'s " << types[current_board[src_row][src_col]->getType()] 
+            << " cannot move to " << static_cast<char>('A' + dest_col) << static_cast<char>('1' + dest_row) << "!" << endl;
+            return;
+        }
+    }
     
-    //it is a valid move so make the move
+    //make the move
     ChessPiece* temp = nullptr;
     temp = current_board[dest_row][dest_col];
     current_board[dest_row][dest_col] = current_board[src_row][src_col];

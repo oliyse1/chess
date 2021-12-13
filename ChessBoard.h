@@ -37,7 +37,7 @@ public:
     bool canMove(Colour colour);
     //this function checks if it a player of a specified colour is in checkmate or if the game is in stalemate
     bool isGameOver(Colour colour);
-    //this function allows the player to interact with the check pieces on the chess board. source_sqaure and destination_square need to be in the format/range of "A1" to "H8"
+    //this function allows the player to interact with the check pieces on the chess board. source_square and destination_square need to be in the format/range of "A1" to "H8"
     void submitMove(char const* source_square, char const* destination_square);
     //this function checks if a castling move is valid
     bool isCastlingValid(int src_row, int src_col, int dest_row, int dest_col);
